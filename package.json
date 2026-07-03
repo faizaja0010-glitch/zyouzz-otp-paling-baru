@@ -18,7 +18,7 @@
   ],
   "author": "Danxx",
   "license": "MIT",
-  "type": "commonjs",
+  "type": "commonsj",
   "dependencies": {
     "@prisma/client": "^6.16.2",
     "axios": "^1.18.1",
