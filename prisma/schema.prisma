@@ -1,1 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
 
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  CS
+  RESELLER
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESS
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+  EXPIRED
+}
+
+enum DepositStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum TicketStatus {
+  OPEN
+  PROCESS
+  DONE
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketType {
+  BUG
+  SALDO_TIDAK_MASUK
+  OTP_GAGAL
+  ORDER_GAGAL
+  LAINNYA
+}
+
+model User {
+  id             Int        @id @default(autoincrement())
+  userId         String     @unique
+  username       String     @unique
+  password       String
+  email          String?    @unique
+  phone          String?
+  role           Role       @default(MEMBER)
+  status         UserStatus @default(ACTIVE)
+
+  balance        Decimal    @default(0.00) @db.Decimal(18,2)
+
+  isSuperOwner   Boolean    @default(false)
+
+  banReason      String?
+  banExpiredAt   DateTime?
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  orders          Order[]
+deposits        Deposit[]
+tickets         Ticket[]
+ledger          BalanceLedger[]
+handledTickets  Ticket[] @relation("TicketHandledBy")
+}
+
+model BalanceLedger {
+  id            Int      @id @default(autoincrement())
+
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          String
+  description   String?
+
+  amount        Decimal  @db.Decimal(18,2)
+
+  beforeBalance Decimal  @db.Decimal(18,2)
+  afterBalance  Decimal  @db.Decimal(18,2)
+
+  createdAt     DateTime @default(now())
+}
+
+model Deposit {
+  id            Int            @id @default(autoincrement())
+
+  invoice        String         @unique
+
+  userId         Int
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount         Decimal        @db.Decimal(18,2)
+
+  paymentMethod  String
+  paymentCode    String?
+
+  status         DepositStatus  @default(PENDING)
+
+  paidAt         DateTime?
+  expiredAt      DateTime?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Order {
+  id              Int           @id @default(autoincrement())
+
+  orderNumber     String        @unique
+
+  userId          Int
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  supplier        String
+
+  productCode     String
+  productName     String
+
+  targetNumber    String
+
+  costPrice       Decimal       @db.Decimal(18,2)
+  sellPrice       Decimal       @db.Decimal(18,2)
+  profit          Decimal       @db.Decimal(18,2)
+
+  otpCode         String?
+
+  status          OrderStatus   @default(PENDING)
+
+  canCancelUntil  DateTime?
+
+  otpExpiredAt    DateTime?
+
+  refundedAt      DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+model Ticket {
+  id              Int              @id @default(autoincrement())
+
+  ticketId        String           @unique
+
+  userId          Int
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+
+  type            TicketType
+
+  priority        TicketPriority   @default(MEDIUM)
+
+  status          TicketStatus     @default(OPEN)
+
+  description     String           @db.Text
+
+  proofImage1     String?
+  proofImage2     String?
+
+  email           String?
+
+  phone           String?
+
+  handledBy       Int?
+
+  escalated       Boolean          @default(false)
+
+  escalatedAt     DateTime?
+
+  closedAt        DateTime?
+
+  createdAt       DateTime         @default(now())
+
+  updatedAt       DateTime         @updatedAt
+}
